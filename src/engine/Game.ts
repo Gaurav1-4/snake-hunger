@@ -7,9 +7,21 @@ import { Asteroid } from '../entities/Asteroid';
 import { Particle } from '../entities/Particle';
 import { Powerup, type PowerupType } from '../entities/Powerup';
 import { Boss } from '../entities/Boss';
+import { BossBullet } from '../entities/BossBullet';
 import { playSynthSound } from '../utils/audio';
 import { useGameStore } from '../store/useGameStore';
 import { usePlayerStore } from '../store/usePlayerStore';
+
+interface CosmicObject {
+  x: number;
+  y: number;
+  radius: number;
+  colorStart: string;
+  colorEnd: string;
+  hasRings: boolean;
+  ringColor: string;
+  parallax: number;
+}
 
 export class Game {
   private canvas: HTMLCanvasElement;
@@ -21,18 +33,21 @@ export class Game {
   private animationFrameId: number | null = null;
   private isRunning: boolean = false;
   
-  private player: Snake;
-  private foods: Food[] = [];
-  private asteroids: Asteroid[] = [];
-  private particles: Particle[] = [];
-  private powerups: Powerup[] = [];
-  private bosses: Boss[] = [];
-  private aiSnakes: Snake[] = [];
+  public player: Snake;
+  public foods: Food[] = [];
+  public asteroids: Asteroid[] = [];
+  public particles: Particle[] = [];
+  public powerups: Powerup[] = [];
+  public bosses: Boss[] = [];
+  public bossBullets: BossBullet[] = [];
+  public aiSnakes: Snake[] = [];
   
   public readonly WORLD_SIZE = 10000;
   
   private activePowerups: Map<PowerupType, number> = new Map(); // Type to time remaining
   private lastBossScore: number = 0;
+
+  private cosmicObjects: CosmicObject[] = [];
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -50,9 +65,46 @@ export class Game {
 
     this.player = new Snake(0, 0, true);
     
+    this.initCosmicBackground();
     this.initWorld();
     
     this.loop = this.loop.bind(this);
+  }
+
+  private initCosmicBackground() {
+    // Generate distinct cosmic background objects (glowing gas planets & ring planets)
+    this.cosmicObjects = [
+      {
+        x: -2500, y: -2000, radius: 450,
+        colorStart: '#1d0b3a', colorEnd: '#bd00ff',
+        hasRings: true, ringColor: 'rgba(189, 0, 255, 0.25)',
+        parallax: 0.15
+      },
+      {
+        x: 3500, y: -3000, radius: 600,
+        colorStart: '#021e2b', colorEnd: '#00f3ff',
+        hasRings: false, ringColor: '',
+        parallax: 0.1
+      },
+      {
+        x: -4500, y: 4000, radius: 350,
+        colorStart: '#2b0c16', colorEnd: '#ff003c',
+        hasRings: false, ringColor: '',
+        parallax: 0.2
+      },
+      {
+        x: 3000, y: 2500, radius: 500,
+        colorStart: '#08321e', colorEnd: '#00ff66',
+        hasRings: true, ringColor: 'rgba(0, 255, 102, 0.18)',
+        parallax: 0.18
+      },
+      {
+        x: 0, y: -5000, radius: 900,
+        colorStart: '#2b2405', colorEnd: '#ffea00',
+        hasRings: false, ringColor: '',
+        parallax: 0.05
+      }
+    ];
   }
 
   private initWorld() {
@@ -67,21 +119,20 @@ export class Game {
     }
     
     // Spawn AI Snakes
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < 20; i++) {
       this.spawnAISnake();
     }
   }
 
   private spawnAISnake() {
-    // Spawn somewhat near the player so the player isn't lonely
     let x, y;
     do {
       x = (Math.random() - 0.5) * this.WORLD_SIZE;
       y = (Math.random() - 0.5) * this.WORLD_SIZE;
-    } while (this.player && this.player.position && new Vector2(x, y).distance(this.player.position) < 800); // Don't spawn right on top of player
+    } while (this.player && this.player.position && new Vector2(x, y).distance(this.player.position) < 800);
     
     const ai = new Snake(x, y, false);
-    ai.grow(Math.floor(5 + Math.random() * 15)); // Start with decent size so they are threatening
+    ai.grow(Math.floor(5 + Math.random() * 15)); // Start with decent size
     this.aiSnakes.push(ai);
   }
 
@@ -101,14 +152,13 @@ export class Game {
   private spawnAsteroid() {
     const x = (Math.random() - 0.5) * this.WORLD_SIZE;
     const y = (Math.random() - 0.5) * this.WORLD_SIZE;
-    // Don't spawn near center (player start)
     if (Math.abs(x) < 500 && Math.abs(y) < 500) return;
     
     const radius = 50 + Math.random() * 150;
     this.asteroids.push(new Asteroid(x, y, radius));
   }
 
-  private spawnParticles(x: number, y: number, color: string, count: number) {
+  public spawnParticles(x: number, y: number, color: string, count: number) {
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
       const speed = 50 + Math.random() * 150;
@@ -129,13 +179,13 @@ export class Game {
   public start() {
     if (this.isRunning) return;
     
-    // Reset game state if it was gameover
     if (this.player.isDead) {
       this.player = new Snake(0, 0, true);
       this.foods = [];
       this.asteroids = [];
       this.particles = [];
       this.bosses = [];
+      this.bossBullets = [];
       this.aiSnakes = [];
       this.lastBossScore = 0;
       this.activePowerups.clear();
@@ -144,6 +194,24 @@ export class Game {
       this.input.joystickDir = new Vector2(0, 0);
       this.input.isBoosting = false;
       useGameStore.getState().resetGame();
+    } else if (this.player) {
+      const pStore = usePlayerStore.getState();
+      this.player.name = pStore.nickname || 'ASTRONAUT';
+      this.player.trailType = pStore.equippedTrail || 'none';
+      
+      // Update glow/skin
+      const skin = pStore.equippedSkin;
+      if (skin === 'neon_green') {
+        (this.player as any).glowColor = '#00ff66';
+      } else if (skin === 'cyber_red') {
+        (this.player as any).glowColor = '#ff003c';
+      } else if (skin === 'plasma') {
+        (this.player as any).glowColor = '#ff00ea';
+      } else if (skin === 'gold') {
+        (this.player as any).glowColor = '#ffea00';
+      } else {
+        (this.player as any).glowColor = '#00f3ff';
+      }
     }
     
     this.isRunning = true;
@@ -210,7 +278,7 @@ export class Game {
       this.player.setBoost(this.input.getBoostInput() || hasSpeed);
 
       // Update Player
-      this.player.update(deltaTime);
+      this.player.update(deltaTime, this.particles);
 
       // Boundaries
       const halfWorld = this.WORLD_SIZE / 2;
@@ -238,36 +306,26 @@ export class Game {
 
         const distToPlayer = ai.position.distance(this.player.position);
 
-        // 1. General attraction to the player's general vicinity to keep the map feeling populated
         let generalAttraction = new Vector2(0, 0);
         if (distToPlayer > 2000) {
-          generalAttraction = this.player.position.sub(ai.position).normalize().mul(0.2); // Weak pull towards player
+          generalAttraction = this.player.position.sub(ai.position).normalize().mul(0.2);
         }
 
-        // 2. Aggressive cutoff logic (Killing intent)
-        // In snake games, any size can kill any size by cutting off the head.
         if (distToPlayer < 1200 && !this.player.isDead) {
           isChasing = true;
-          
-          // Calculate the point slightly ahead of the player to cut them off
-          const predictTime = Math.min(distToPlayer / 300, 2.0); // Predict max 2 seconds ahead
+          const predictTime = Math.min(distToPlayer / 300, 2.0);
           const interceptPoint = this.player.position.add(this.player.velocity.mul(predictTime));
           
-          // If the AI is behind the player and smaller, maybe don't blindly chase their tail
           const dotProduct = ai.currentDirection.dot(this.player.currentDirection);
           const isBehind = interceptPoint.distance(ai.position) > distToPlayer + 200;
           
           if (isBehind && this.player.segments.length > ai.segments.length + 10) {
-             // Too dangerous, player is huge and AI is behind them. Just flee to survive.
              isFleeing = true;
              isChasing = false;
              targetPos = ai.position.add(ai.position.sub(this.player.position).normalize().mul(500));
           } else {
-             // Go for the kill!
              targetPos = interceptPoint;
-             
-             // Boost if close enough to close the gap and secure the cutoff
-             if (distToPlayer < 600 && dotProduct < 0.5) { // If crossing paths
+             if (distToPlayer < 600 && dotProduct < 0.5) {
                ai.setBoost(true);
              } else {
                ai.setBoost(false);
@@ -275,13 +333,10 @@ export class Game {
           }
         }
 
-        // 3. Otherwise, look for food or wander
         if (!isFleeing && !isChasing) {
            ai.setBoost(false);
-           
            this.foods.forEach(f => {
              const dist = ai.position.distance(f.position);
-             // Prefer higher value foods
              const effectiveDist = f.type === 'legendary' ? dist * 0.1 : (f.type === 'epic' ? dist * 0.3 : dist);
              if (effectiveDist < closestFoodDist && dist < 1200) {
                closestFoodDist = effectiveDist;
@@ -289,11 +344,9 @@ export class Game {
              }
            });
            
-           // Wander if no food nearby
            if (!targetPos) {
               const timeSec = Date.now() / 2000;
               const wanderNoise = new Vector2(Math.sin(timeSec + i * 5), Math.cos(timeSec + i * 5));
-              // Slightly curve the current velocity, plus the general attraction to the player
               if (ai.velocity.mag() > 0) {
                 targetPos = ai.position.add(ai.velocity.normalize().add(wanderNoise.mul(0.5)).add(generalAttraction).normalize().mul(500));
               } else {
@@ -306,25 +359,49 @@ export class Game {
           ai.setDirection(targetPos.sub(ai.position).normalize());
         }
 
-        ai.update(deltaTime);
+        ai.update(deltaTime, this.particles);
 
-        // Clamp AI bounds
         if (ai.position.x > halfWorld) ai.position.x = halfWorld;
         if (ai.position.x < -halfWorld) ai.position.x = -halfWorld;
         if (ai.position.y > halfWorld) ai.position.y = halfWorld;
         if (ai.position.y < -halfWorld) ai.position.y = -halfWorld;
       });
 
-      // Update entities
+      // Update bosses & fire plasma bullets
+      this.bosses.forEach(b => {
+        b.update(deltaTime, this.player);
+
+        // Firing logic
+        if (!(b as any).shootTimer) {
+          (b as any).shootTimer = 1.5;
+        }
+        (b as any).shootTimer -= deltaTime;
+        
+        if ((b as any).shootTimer <= 0) {
+          (b as any).shootTimer = 1.2 + Math.random() * 0.8;
+          const dist = b.position.distance(this.player.position);
+          
+          if (dist < 1300 && !this.player.isDead) {
+            const dir = this.player.position.sub(b.position).normalize();
+            this.bossBullets.push(new BossBullet(b.position.x, b.position.y, dir.mul(450), '#ff003c'));
+            playSynthSound('shoot');
+          }
+        }
+      });
+
+      // Update bullets
+      this.bossBullets.forEach(bullet => bullet.update(deltaTime));
+
+      // Update other entities
       this.foods.forEach(f => f.update(deltaTime));
       this.asteroids.forEach(a => a.update(deltaTime));
       this.particles.forEach(p => p.update(deltaTime));
       this.powerups.forEach(p => p.update(deltaTime));
-      this.bosses.forEach(b => b.update(deltaTime, this.player));
 
-      // Remove dead particles and bosses
+      // Remove dead entities
       this.particles = this.particles.filter(p => !p.isDead);
       this.bosses = this.bosses.filter(b => !b.isDead);
+      this.bossBullets = this.bossBullets.filter(b => !b.isDead);
       this.aiSnakes = this.aiSnakes.filter(ai => !ai.isDead);
 
       // Collisions
@@ -343,25 +420,24 @@ export class Game {
         this.spawnFood();
       }
       
-      // Replenish AI Snakes (keep the game populated with 30 snakes)
-      while (this.aiSnakes.length < 30) {
+      // Replenish AI Snakes
+      while (this.aiSnakes.length < 25) {
         this.spawnAISnake();
       }
 
-      // Camera - Zoom dynamically scaled by viewport height to keep snake size proportional
+      // Camera
       const heightScale = Math.max(0.45, Math.min(1.0, this.canvas.height / 900));
       this.camera.targetZoom = (this.player.isBoosting ? 0.8 : 1.0 - (this.player.segments.length * 0.0015)) * heightScale;
       this.camera.targetZoom = Math.max(0.25, Math.min(1.5, this.camera.targetZoom));
       this.camera.update(deltaTime, this.player.position);
 
     } else if (gameState === 'menu') {
-      // Rotate camera around center
       const angle = performance.now() * 0.0001;
       this.camera.position.x = Math.cos(angle) * 500;
       this.camera.position.y = Math.sin(angle) * 500;
       this.camera.targetZoom = 0.5;
-      this.camera.update(deltaTime, this.camera.position); // manual position set, but update does lerp
-      this.camera.position = new Vector2(Math.cos(angle) * 500, Math.sin(angle) * 500); // force
+      this.camera.update(deltaTime, this.camera.position);
+      this.camera.position = new Vector2(Math.cos(angle) * 500, Math.sin(angle) * 500);
       
       this.asteroids.forEach(a => a.update(deltaTime));
       this.foods.forEach(f => f.update(deltaTime));
@@ -369,45 +445,61 @@ export class Game {
   }
 
   private checkCollisions(hasMagnet: boolean, hasDouble: boolean, hasShield: boolean) {
-    // Food collision
+    // Player Food collision
     const magnetRadius = hasMagnet ? 300 : 0;
     
     for (let i = this.foods.length - 1; i >= 0; i--) {
       const food = this.foods[i];
       const distSq = this.player.position.distance(food.position);
       
-      // Magnet effect
       if (hasMagnet && distSq < magnetRadius) {
         const dir = this.player.position.sub(food.position).normalize();
-        food.position = food.position.add(dir.mul(500 * 0.016)); // approx 60fps delta
+        food.position = food.position.add(dir.mul(500 * 0.016));
       }
 
       if (distSq < this.player.radius + food.radius) {
         playSynthSound('eat');
-        // Eat food
         const points = food.scoreValue * (hasDouble ? 2 : 1);
         useGameStore.getState().addScore(points);
         usePlayerStore.getState().addCoins(food.scoreValue);
         this.player.grow(food.growthValue);
+        this.player.score += points;
         
-        // Effects
-        this.spawnParticles(food.position.x, food.position.y, '#ffffff', 10);
+        this.spawnParticles(food.position.x, food.position.y, food.glowColor || '#ffffff', 10);
         if (food.type === 'legendary') this.camera.shake(5);
         
-        // Random powerup spawn chance from legendary/epic
         if ((food.type === 'legendary' || food.type === 'epic') && Math.random() < 0.3) {
            const types: PowerupType[] = ['speed', 'shield', 'magnet', 'double_points'];
            this.powerups.push(new Powerup(food.position.x, food.position.y, types[Math.floor(Math.random() * types.length)]));
         }
         
-        // Level up check
         const store = useGameStore.getState();
         if (store.score > store.level * 100) {
             store.setLevel(store.level + 1);
-            // Spawn more asteroids or boss
         }
 
         this.foods.splice(i, 1);
+      }
+    }
+
+    // AI Food collision
+    for (let i = 0; i < this.aiSnakes.length; i++) {
+      const ai = this.aiSnakes[i];
+      if (ai.isDead) continue;
+      
+      for (let j = this.foods.length - 1; j >= 0; j--) {
+        const food = this.foods[j];
+        const dist = ai.position.distance(food.position);
+        
+        if (dist < ai.radius + food.radius) {
+          ai.grow(food.growthValue);
+          ai.score += food.scoreValue;
+          
+          if (Math.random() < 0.15) {
+            this.spawnParticles(food.position.x, food.position.y, food.glowColor || '#ffffff', 4);
+          }
+          this.foods.splice(j, 1);
+        }
       }
     }
 
@@ -433,25 +525,10 @@ export class Game {
             playSynthSound('hit');
             this.camera.shake(15);
             this.spawnParticles(this.player.position.x, this.player.position.y, '#ff0000', 30);
-            // Bounce off slightly
             this.player.position = this.player.position.sub(this.player.velocity.normalize().mul(50));
         }
       }
     }
-
-    // Self collision disabled per user request
-    /*
-    if (!hasShield && this.player.segments.length > 10) {
-      // Don't check first few segments
-      for (let i = 10; i < this.player.segments.length; i++) {
-        const seg = this.player.segments[i];
-        if (this.player.position.distance(seg.position) < this.player.radius + seg.radius - 5) {
-          this.gameOver();
-          return;
-        }
-      }
-    }
-    */
 
     // AI Snake Collision
     for (let i = 0; i < this.aiSnakes.length; i++) {
@@ -514,12 +591,10 @@ export class Game {
       const boss = this.bosses[i];
       if (this.player.checkCollision(boss)) {
         if (this.player.isBoosting || hasShield) {
-          // Damage boss
           playSynthSound('hit');
           boss.takeDamage(1);
           this.camera.shake(10);
           this.spawnParticles(boss.position.x, boss.position.y, '#ffea00', 20);
-          // Bounce off
           this.player.position = this.player.position.sub(this.player.velocity.normalize().mul(50));
           
           if (boss.isDead) {
@@ -527,8 +602,6 @@ export class Game {
             usePlayerStore.getState().addCoins(boss.scoreValue);
             this.spawnParticles(boss.position.x, boss.position.y, '#ff003c', 100);
             this.camera.shake(30);
-            
-            // Drop powerups
             this.powerups.push(new Powerup(boss.position.x + 50, boss.position.y, 'double_points'));
             this.powerups.push(new Powerup(boss.position.x - 50, boss.position.y, 'magnet'));
           }
@@ -538,11 +611,41 @@ export class Game {
         }
       }
     }
+
+    // Boss bullets collision
+    for (let i = this.bossBullets.length - 1; i >= 0; i--) {
+      const bullet = this.bossBullets[i];
+      if (this.player.position.distance(bullet.position) < this.player.radius + bullet.radius) {
+        bullet.isDead = true;
+        
+        if (hasShield) {
+          playSynthSound('shield_hit');
+          this.spawnParticles(bullet.position.x, bullet.position.y, '#00f3ff', 15);
+        } else {
+          playSynthSound('hit');
+          this.camera.shake(12);
+          this.spawnParticles(this.player.position.x, this.player.position.y, '#ff003c', 25);
+          
+          // Unshielded player loses segments
+          if (this.player.segments.length > 5) {
+            const removed = this.player.segments.splice(this.player.segments.length - 5, 5);
+            removed.forEach(seg => {
+              this.foods.push(new Food(seg.position.x, seg.position.y, 'basic'));
+            });
+            const newScore = Math.max(0, useGameStore.getState().score - 5);
+            useGameStore.getState().setScore(newScore);
+            this.player.score = newScore;
+          } else {
+            this.gameOver();
+            return;
+          }
+        }
+      }
+    }
   }
 
   private spawnBoss() {
     const level = useGameStore.getState().level;
-    // Spawn somewhat near player but not on top of them
     const angle = Math.random() * Math.PI * 2;
     const distance = 800 + Math.random() * 400;
     const x = this.player.position.x + Math.cos(angle) * distance;
@@ -558,7 +661,6 @@ export class Game {
     this.spawnParticles(this.player.position.x, this.player.position.y, '#ff003c', 100);
     this.camera.shake(20);
     
-    // Convert segments to food
     this.player.segments.forEach(seg => {
         if (Math.random() > 0.5) {
             this.foods.push(new Food(seg.position.x, seg.position.y, 'basic'));
@@ -568,8 +670,22 @@ export class Game {
     useGameStore.getState().setGameState('gameover');
   }
 
+  public getLeaderboard() {
+    const list = [
+      { name: this.player.name, score: useGameStore.getState().score, isPlayer: true }
+    ];
+    
+    this.aiSnakes.forEach(ai => {
+      if (!ai.isDead) {
+        list.push({ name: ai.name, score: ai.score, isPlayer: false });
+      }
+    });
+    
+    return list.sort((a, b) => b.score - a.score).slice(0, 10);
+  }
+
   private render() {
-    this.ctx.fillStyle = '#020205'; // Darker space background
+    this.ctx.fillStyle = '#020205'; 
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
     this.drawBackground();
@@ -577,6 +693,7 @@ export class Game {
     // Draw entities based on depth/type
     this.asteroids.forEach(a => a.draw(this.ctx, this.camera));
     this.bosses.forEach(b => b.draw(this.ctx, this.camera));
+    this.bossBullets.forEach(bullet => bullet.draw(this.ctx, this.camera));
     this.powerups.forEach(p => p.draw(this.ctx, this.camera));
     this.foods.forEach(f => f.draw(this.ctx, this.camera));
     this.aiSnakes.forEach(ai => ai.draw(this.ctx, this.camera));
@@ -587,14 +704,12 @@ export class Game {
     
     this.particles.forEach(p => p.draw(this.ctx, this.camera));
 
-    // Minimap
     if (useGameStore.getState().gameState === 'playing') {
       this.drawMinimap();
     }
   }
 
   private drawMinimap() {
-    // Dynamic minimap sizing based on screen height to prevent blocking mobile view
     const size = Math.max(90, Math.min(150, this.canvas.height * 0.18));
     const padding = Math.max(10, Math.min(20, this.canvas.height * 0.02));
     const x = this.canvas.width - size - padding;
@@ -602,7 +717,6 @@ export class Game {
     
     this.ctx.save();
     
-    // Background with blur effect
     this.ctx.fillStyle = 'rgba(5, 5, 15, 0.5)';
     this.ctx.shadowBlur = 10;
     this.ctx.shadowColor = 'rgba(0,0,0,0.5)';
@@ -610,23 +724,20 @@ export class Game {
     this.ctx.roundRect(x, y, size, size, 12);
     this.ctx.fill();
     
-    // Border
     this.ctx.strokeStyle = 'rgba(0, 243, 255, 0.3)';
     this.ctx.lineWidth = 1;
     this.ctx.shadowBlur = 5;
     this.ctx.shadowColor = 'rgba(0, 243, 255, 0.5)';
     this.ctx.stroke();
 
-    // Clip inner contents
     this.ctx.clip();
-    this.ctx.shadowBlur = 0; // Turn off shadow for dots
+    this.ctx.shadowBlur = 0;
 
-    // Helper to map world to minimap
     const scale = size / this.WORLD_SIZE;
     const mapX = (worldX: number) => x + (worldX + this.WORLD_SIZE / 2) * scale;
     const mapY = (worldY: number) => y + (worldY + this.WORLD_SIZE / 2) * scale;
 
-    // Draw Food (only high value)
+    // Draw Food
     this.ctx.fillStyle = '#ffea00';
     this.foods.forEach(f => {
       if (f.type === 'legendary' || f.type === 'epic') {
@@ -664,7 +775,65 @@ export class Game {
   }
 
   private drawBackground() {
-    // 1. Draw Parallax Starfield
+    // 1. Draw Parallax Space Nebulae and Planets
+    this.cosmicObjects.forEach(obj => {
+      const screenX = (obj.x - this.camera.position.x * obj.parallax) * this.camera.zoom + this.canvas.width / 2;
+      const screenY = (obj.y - this.camera.position.y * obj.parallax) * this.camera.zoom + this.canvas.height / 2;
+      const screenRadius = obj.radius * this.camera.zoom * (obj.parallax * 0.7 + 0.3);
+
+      const maxBound = screenRadius * 2.5;
+      if (
+        screenX < -maxBound || screenX > this.canvas.width + maxBound ||
+        screenY < -maxBound || screenY > this.canvas.height + maxBound
+      ) {
+        return;
+      }
+
+      this.ctx.save();
+      
+      // Draw Atmosphere Glow
+      const glowGrad = this.ctx.createRadialGradient(screenX, screenY, 0, screenX, screenY, screenRadius * 1.4);
+      glowGrad.addColorStop(0, obj.colorEnd + '35'); 
+      glowGrad.addColorStop(0.5, obj.colorEnd + '10'); 
+      glowGrad.addColorStop(1, 'rgba(0,0,0,0)');
+      this.ctx.fillStyle = glowGrad;
+      this.ctx.beginPath();
+      this.ctx.arc(screenX, screenY, screenRadius * 1.4, 0, Math.PI * 2);
+      this.ctx.fill();
+
+      // Draw Planet Sphere
+      const planetGrad = this.ctx.createRadialGradient(
+        screenX - screenRadius * 0.3, screenY - screenRadius * 0.3, screenRadius * 0.05,
+        screenX, screenY, screenRadius
+      );
+      planetGrad.addColorStop(0, obj.colorStart);
+      planetGrad.addColorStop(0.8, obj.colorEnd);
+      planetGrad.addColorStop(1, '#020205'); 
+      this.ctx.fillStyle = planetGrad;
+      this.ctx.beginPath();
+      this.ctx.arc(screenX, screenY, screenRadius, 0, Math.PI * 2);
+      this.ctx.fill();
+
+      // Draw Rings
+      if (obj.hasRings) {
+        this.ctx.strokeStyle = obj.ringColor;
+        this.ctx.lineWidth = 14 * this.camera.zoom;
+        
+        this.ctx.save();
+        this.ctx.translate(screenX, screenY);
+        this.ctx.rotate(-Math.PI / 6);
+        
+        this.ctx.beginPath();
+        this.ctx.ellipse(0, 0, screenRadius * 1.8, screenRadius * 0.28, 0, 0, Math.PI * 2);
+        this.ctx.stroke();
+        
+        this.ctx.restore();
+      }
+
+      this.ctx.restore();
+    });
+
+    // 2. Draw Parallax Starfield
     const starGridSize = 200;
     const parallaxFactor = 0.3;
     const startX = Math.floor((this.camera.position.x * parallaxFactor - this.camera.viewportWidth / 2) / starGridSize) * starGridSize;
@@ -674,7 +843,6 @@ export class Game {
 
     for (let cx = startX; cx <= endX; cx += starGridSize) {
       for (let cy = startY; cy <= endY; cy += starGridSize) {
-        // Generate pseudo-random stars for this grid cell
         for (let i = 0; i < 4; i++) {
           const hash = Math.sin(cx * 12.9898 + cy * 78.233 + i * 43.123) * 43758.5453;
           const rx = cx + (hash - Math.floor(hash)) * starGridSize;
@@ -687,7 +855,6 @@ export class Game {
           const size = (hash - Math.floor(hash)) * 1.5 + 0.5;
           const opacity = (hash2 - Math.floor(hash2)) * 0.7 + 0.1;
           
-          // Make some stars blink
           const blink = Math.sin(Date.now() / 1000 + hash * 10) * 0.5 + 0.5;
           
           this.ctx.fillStyle = `rgba(255, 255, 255, ${opacity * blink})`;
@@ -698,7 +865,7 @@ export class Game {
       }
     }
 
-    // 2. Subtle Grid
+    // 3. Subtle Grid
     this.ctx.strokeStyle = 'rgba(0, 243, 255, 0.04)';
     this.ctx.lineWidth = 1;
 
@@ -725,7 +892,7 @@ export class Game {
     }
     this.ctx.stroke();
     
-    // 3. World bounds
+    // 4. World bounds
     const halfWorld = this.WORLD_SIZE / 2;
     const boundsTL = this.camera.w2s(new Vector2(-halfWorld, -halfWorld));
     const boundsBR = this.camera.w2s(new Vector2(halfWorld, halfWorld));
@@ -737,6 +904,6 @@ export class Game {
     this.ctx.shadowBlur = 20;
     this.ctx.shadowColor = '#ff003c';
     this.ctx.strokeRect(boundsTL.x, boundsTL.y, width, height);
-    this.ctx.shadowBlur = 0; // reset
+    this.ctx.shadowBlur = 0; 
   }
 }

@@ -1,6 +1,7 @@
 import { Entity } from './Entity';
 import { Vector2 } from '../engine/Vector2';
 import { Camera } from '../engine/Camera';
+import { Particle } from './Particle';
 import { usePlayerStore } from '../store/usePlayerStore';
 
 export class SnakeSegment {
@@ -23,9 +24,11 @@ export class Snake extends Entity {
   public isBoosting: boolean = false;
   
   public score: number = 0;
-  private skinColor: string;
-  private glowColor: string;
+  private skinColor: string = '#ffffff';
+  private glowColor: string = '#00f3ff';
   public isPlayer: boolean;
+  public name: string = 'ASTRONAUT';
+  public trailType: string = 'none';
 
   constructor(x: number, y: number, isPlayer: boolean = false) {
     super(x, y, 20); // Head radius
@@ -38,18 +41,42 @@ export class Snake extends Entity {
     this.isPlayer = isPlayer;
 
     if (isPlayer) {
-      const skin = usePlayerStore.getState().equippedSkin;
-      // Simple color mapping based on skin
-      if (skin === 'neon_blue') {
-        this.skinColor = '#ffffff';
-        this.glowColor = '#00f3ff';
-      } else {
-        this.skinColor = '#ffffff';
+      const pStore = usePlayerStore.getState();
+      this.name = pStore.nickname || 'ASTRONAUT';
+      this.trailType = pStore.equippedTrail || 'none';
+      
+      const skin = pStore.equippedSkin;
+      if (skin === 'neon_green') {
         this.glowColor = '#00ff66';
+      } else if (skin === 'cyber_red') {
+        this.glowColor = '#ff003c';
+      } else if (skin === 'plasma') {
+        this.glowColor = '#ff00ea';
+      } else if (skin === 'gold') {
+        this.glowColor = '#ffea00';
+      } else {
+        this.glowColor = '#00f3ff'; // neon_blue
       }
     } else {
-      this.skinColor = '#ffffff';
-      this.glowColor = '#ff003c'; // Enemy color
+      // AI Snake Setup with futuristic names
+      const aiNames = [
+        'VoidViper', 'CosmoDrifter', 'NovaBoa', 'SolarSerpent', 'StellarPython', 
+        'NebulaNoodle', 'ChronoPython', 'GalaxyGlider', 'QuantumWorm', 'EclipseViper', 
+        'MeteorConstrictor', 'PulsarPython', 'Hyperion', 'Orion', 'SiriusSerpent', 
+        'QuasarWorm', 'AstroViper', 'DarkEnergy', 'RedGiant', 'WarpSpeed', 
+        'Supernova', 'BlackHole', 'EventHorizon', 'CosmicDust'
+      ];
+      this.name = aiNames[Math.floor(Math.random() * aiNames.length)];
+      
+      // Random cosmetic variety for bot skins
+      const botGlows = ['#ff003c', '#bd00ff', '#ff00ea', '#ffea00', '#00ff66', '#00f3ff'];
+      this.glowColor = botGlows[Math.floor(Math.random() * botGlows.length)];
+
+      // 25% chance of bots having trails
+      if (Math.random() < 0.25) {
+        const trails = ['neon_pulse', 'sparkles', 'rainbow', 'fire'];
+        this.trailType = trails[Math.floor(Math.random() * trails.length)];
+      }
     }
   }
 
@@ -63,7 +90,7 @@ export class Snake extends Entity {
     this.isBoosting = boost;
   }
 
-  update(deltaTime: number) {
+  update(deltaTime: number, particles?: Particle[]) {
     // Smooth rotation towards target direction
     let baseTurnSpeed = 5;
     if (this.isPlayer) {
@@ -99,6 +126,41 @@ export class Snake extends Entity {
       }
       
       prevPos = segment.position.clone();
+    }
+
+    // Spawn trail particles at the tail
+    if (particles && this.trailType !== 'none' && this.segments.length > 0) {
+      if (Math.random() < 0.6) {
+        const lastSeg = this.segments[this.segments.length - 1];
+        const pos = lastSeg.position;
+        
+        // Spawn particle based on trail type
+        const speedFactor = 25;
+        const angle = Math.random() * Math.PI * 2;
+        const drift = new Vector2(Math.cos(angle) * speedFactor, Math.sin(angle) * speedFactor).sub(this.velocity.mul(0.15));
+        
+        let pColor = this.glowColor;
+        let initialRadius = 4;
+        let maxLife = 0.5;
+        
+        if (this.trailType === 'sparkles') {
+          pColor = '#ffea00';
+          initialRadius = 3;
+          maxLife = 0.4;
+        } else if (this.trailType === 'rainbow') {
+          const hue = (Date.now() / 6) % 360;
+          pColor = `hsl(${hue}, 100%, 60%)`;
+          initialRadius = 4.5;
+          maxLife = 0.6;
+        } else if (this.trailType === 'fire') {
+          pColor = Math.random() > 0.5 ? '#ff4500' : '#ff8c00';
+          initialRadius = 5.5;
+          maxLife = 0.75;
+          drift.y -= 35; // drift upwards
+        }
+        
+        particles.push(new Particle(pos.x, pos.y, drift, pColor, maxLife, initialRadius));
+      }
     }
   }
 
@@ -186,5 +248,14 @@ export class Snake extends Entity {
       0, Math.PI * 2
     );
     ctx.fill();
+
+    // Draw Name above head
+    ctx.fillStyle = this.isPlayer ? '#00f3ff' : 'rgba(255, 255, 255, 0.75)';
+    ctx.font = `bold ${Math.max(10, 11 * camera.zoom)}px var(--font-heading)`;
+    ctx.textAlign = 'center';
+    ctx.shadowBlur = 4 * camera.zoom;
+    ctx.shadowColor = 'black';
+    ctx.fillText(this.name, headScreenPos.x, headScreenPos.y - headScreenRadius - 12 * camera.zoom);
+    ctx.shadowBlur = 0; // reset
   }
 }

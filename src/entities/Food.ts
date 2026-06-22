@@ -8,7 +8,7 @@ export class Food extends Entity {
   public scoreValue: number;
   public growthValue: number;
   private color: string;
-  private glowColor: string;
+  public glowColor: string;
   private timeAlive: number = 0;
   private hoverOffset: number = Math.random() * Math.PI * 2;
 

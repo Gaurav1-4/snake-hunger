@@ -9,6 +9,7 @@ interface PlayerStore {
   unlockedTrails: string[];
   equippedTrail: string;
   sensitivity: number; // turning responsiveness (1 - 10, default 5)
+  nickname: string;
   
   setHighScore: (score: number) => void;
   addCoins: (amount: number) => void;
@@ -18,6 +19,7 @@ interface PlayerStore {
   unlockTrail: (trailId: string) => void;
   equipTrail: (trailId: string) => void;
   setSensitivity: (val: number) => void;
+  setNickname: (name: string) => void;
 }
 
 export const usePlayerStore = create<PlayerStore>()(
@@ -30,6 +32,7 @@ export const usePlayerStore = create<PlayerStore>()(
       unlockedTrails: ['none'],
       equippedTrail: 'none',
       sensitivity: 5,
+      nickname: 'ASTRONAUT',
 
       setHighScore: (score) => {
         if (score > get().highScore) {
@@ -50,6 +53,7 @@ export const usePlayerStore = create<PlayerStore>()(
       unlockTrail: (trailId) => set((state) => ({ unlockedTrails: [...state.unlockedTrails, trailId] })),
       equipTrail: (trailId) => set({ equippedTrail: trailId }),
       setSensitivity: (val) => set({ sensitivity: val }),
+      setNickname: (name) => set({ nickname: name }),
     }),
     {
       name: 'snake-hunger-player-storage',

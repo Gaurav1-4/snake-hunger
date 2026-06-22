@@ -1,4 +1,4 @@
-export const playSynthSound = (type: 'eat' | 'powerup' | 'hit' | 'gameover' | 'boss_spawn') => {
+export const playSynthSound = (type: 'eat' | 'powerup' | 'hit' | 'gameover' | 'boss_spawn' | 'shoot' | 'shield_hit') => {
   const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
   if (!AudioContext) return;
   
@@ -57,6 +57,25 @@ export const playSynthSound = (type: 'eat' | 'powerup' | 'hit' | 'gameover' | 'b
       gain.gain.exponentialRampToValueAtTime(0.01, now + 1);
       osc.start(now);
       osc.stop(now + 1);
+      break;
+    case 'shoot':
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(800, now);
+      osc.frequency.exponentialRampToValueAtTime(150, now + 0.15);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+      osc.start(now);
+      osc.stop(now + 0.15);
+      break;
+    case 'shield_hit':
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(600, now);
+      osc.frequency.linearRampToValueAtTime(1000, now + 0.08);
+      osc.frequency.linearRampToValueAtTime(200, now + 0.18);
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+      osc.start(now);
+      osc.stop(now + 0.18);
       break;
   }
 };

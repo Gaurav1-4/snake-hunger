@@ -6,6 +6,20 @@ import { Shield, Zap, Magnet, Star } from 'lucide-react';
 const HUD: React.FC = () => {
   const { score, activePowerups, gameState } = useGameStore();
   const { coins } = usePlayerStore();
+  const [leaderboard, setLeaderboard] = React.useState<Array<{ name: string; score: number; isPlayer: boolean }>>([]);
+
+  React.useEffect(() => {
+    if (gameState !== 'playing') return;
+
+    const interval = setInterval(() => {
+      const game = (window as any).gameInstance;
+      if (game && typeof game.getLeaderboard === 'function') {
+        setLeaderboard(game.getLeaderboard());
+      }
+    }, 250);
+
+    return () => clearInterval(interval);
+  }, [gameState]);
 
   if (gameState !== 'playing') return null;
 
@@ -24,9 +38,20 @@ const HUD: React.FC = () => {
         </div>
       </div>
 
-      {/* Top Right: Powerups & Minimap Placeholder */}
+      {/* Top Right: Powerups & Leaderboard */}
       <div className="right-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '20px' }}>
         
+        {/* Leaderboard */}
+        <div className="glass-panel-hud" style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '220px', pointerEvents: 'auto' }}>
+          <h4 className="text-neon" style={{ fontSize: '0.9rem', letterSpacing: '2px', borderBottom: '1px solid rgba(0, 243, 255, 0.2)', paddingBottom: '6px', marginBottom: '4px' }}>LEADERBOARD</h4>
+          {leaderboard.map((entry, idx) => (
+            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: entry.isPlayer ? 'var(--primary-neon)' : 'var(--text-main)', fontWeight: entry.isPlayer ? 'bold' : 'normal' }}>
+              <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '140px' }}>{idx + 1}. {entry.name}</span>
+              <span>{entry.score}</span>
+            </div>
+          ))}
+        </div>
+
         {/* Powerups List */}
         <div className="powerups-list" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {activePowerups.map((type, index) => (
