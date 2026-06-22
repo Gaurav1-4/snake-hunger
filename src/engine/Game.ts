@@ -193,7 +193,11 @@ export class Game {
       this.initWorld();
       this.input.joystickDir = new Vector2(0, 0);
       this.input.isBoosting = false;
-      useGameStore.getState().resetGame();
+      
+      // Reset game store stats but keep the current gameState (e.g. 'menu')
+      const store = useGameStore.getState();
+      store.setScore(0);
+      store.setLevel(1);
     } else if (this.player) {
       const pStore = usePlayerStore.getState();
       this.player.name = pStore.nickname || 'ASTRONAUT';

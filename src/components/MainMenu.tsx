@@ -4,7 +4,7 @@ import { useGameStore } from '../store/useGameStore';
 import { usePlayerStore } from '../store/usePlayerStore';
 
 const MainMenu: React.FC = () => {
-  const { setGameState } = useGameStore();
+  const { setGameState, resetGame } = useGameStore();
   const { nickname = 'ASTRONAUT', setNickname } = usePlayerStore();
 
   return (
@@ -48,7 +48,7 @@ const MainMenu: React.FC = () => {
           <button 
             className="btn btn-primary animate-pulse" 
             onClick={async () => {
-              setGameState('playing');
+              resetGame();
               
               // Attempt to lock to landscape and go full screen for native mobile feel
               try {
