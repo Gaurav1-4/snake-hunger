@@ -434,7 +434,8 @@ export class Game {
       }
     }
 
-    // Self collision
+    // Self collision disabled per user request
+    /*
     if (!hasShield && this.player.segments.length > 10) {
       // Don't check first few segments
       for (let i = 10; i < this.player.segments.length; i++) {
@@ -445,6 +446,7 @@ export class Game {
         }
       }
     }
+    */
 
     // AI Snake Collision
     for (let i = 0; i < this.aiSnakes.length; i++) {
