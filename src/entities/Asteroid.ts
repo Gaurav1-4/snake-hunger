@@ -42,55 +42,73 @@ export class Asteroid extends Entity {
     ctx.translate(screenPos.x, screenPos.y);
     ctx.rotate(this.rotation);
 
-    // Calculate midpoints for rounded polygon drawing
-    const midpoints: Vector2[] = [];
-    for (let i = 0; i < this.points.length; i++) {
-      const p1 = this.points[i];
-      const p2 = this.points[(i + 1) % this.points.length];
-      midpoints.push(new Vector2((p1.x + p2.x) / 2, (p1.y + p2.y) / 2));
-    }
+    // Determine cyber color theme (alternating based on coordinates)
+    const isCyan = Math.floor((this.position.x + this.position.y) / 100) % 2 === 0;
+    const primaryColor = isCyan ? '#00f3ff' : '#bd00ff';
+    const secondaryColor = isCyan ? 'rgba(0, 243, 255, 0.15)' : 'rgba(189, 0, 255, 0.15)';
+    const coreColor = isCyan ? '#ffffff' : '#ff00aa';
 
+    // 1. Draw crystalline outer shape
     ctx.beginPath();
-    const startMid = midpoints[0];
-    ctx.moveTo(startMid.x * camera.zoom, startMid.y * camera.zoom);
-    
-    for (let i = 0; i < this.points.length; i++) {
-      const p = this.points[(i + 1) % this.points.length];
-      const nextMid = midpoints[(i + 1) % midpoints.length];
-      ctx.quadraticCurveTo(
-         p.x * camera.zoom, p.y * camera.zoom, 
-         nextMid.x * camera.zoom, nextMid.y * camera.zoom
-      );
+    ctx.moveTo(this.points[0].x * camera.zoom, this.points[0].y * camera.zoom);
+    for (let i = 1; i < this.points.length; i++) {
+      ctx.lineTo(this.points[i].x * camera.zoom, this.points[i].y * camera.zoom);
     }
     ctx.closePath();
 
-    // Create gradient for 3D spherical asteroid effect
-    const grad = ctx.createRadialGradient(
-      -screenRadius * 0.3, -screenRadius * 0.3, 0,
-      0, 0, screenRadius * 1.2
-    );
-    grad.addColorStop(0, '#2a2a4e'); // Highlight
-    grad.addColorStop(1, '#0b0b14'); // Dark shadow
-
+    // 2. Crystalline gradient fill
+    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, screenRadius);
+    grad.addColorStop(0, 'rgba(15, 15, 30, 0.9)');
+    grad.addColorStop(0.7, secondaryColor);
+    grad.addColorStop(1, 'rgba(5, 5, 15, 0.6)');
     ctx.fillStyle = grad;
-    ctx.shadowBlur = 10 * camera.zoom;
-    ctx.shadowColor = '#000000';
     ctx.fill();
-    
-    // Draw some simple craters using the asteroid's local points to keep them static
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = 'rgba(5, 5, 10, 0.6)';
-    for (let i = 0; i < Math.min(3, this.points.length); i++) {
-      const cx = (this.points[i].x * 0.4) * camera.zoom;
-      const cy = (this.points[i].y * 0.4) * camera.zoom;
-      const cr = (this.radius * 0.15 + (i%2)*this.radius*0.1) * camera.zoom;
-      ctx.beginPath();
-      ctx.arc(cx, cy, cr, 0, Math.PI * 2);
-      ctx.fill();
-    }
 
-    ctx.strokeStyle = '#3a3e59';
+    // 3. Draw internal crystal facet lines for a 3D wireframe look
+    ctx.strokeStyle = isCyan ? 'rgba(0, 243, 255, 0.3)' : 'rgba(189, 0, 255, 0.3)';
+    ctx.lineWidth = 1 * camera.zoom;
+    
+    // Connect outer vertices to the center
+    ctx.beginPath();
+    for (let i = 0; i < this.points.length; i++) {
+      ctx.moveTo(0, 0);
+      ctx.lineTo(this.points[i].x * camera.zoom, this.points[i].y * camera.zoom);
+    }
+    ctx.stroke();
+
+    // Draw inner concentric crystal wireframe
+    ctx.beginPath();
+    ctx.moveTo(this.points[0].x * 0.5 * camera.zoom, this.points[0].y * 0.5 * camera.zoom);
+    for (let i = 1; i < this.points.length; i++) {
+      ctx.lineTo(this.points[i].x * 0.5 * camera.zoom, this.points[i].y * 0.5 * camera.zoom);
+    }
+    ctx.closePath();
+    ctx.stroke();
+
+    // 4. Pulsating energetic core
+    const pulse = 1 + 0.15 * Math.sin(Date.now() * 0.003 + this.position.x);
+    const coreRadius = this.radius * 0.18 * pulse * camera.zoom;
+    const coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, coreRadius);
+    coreGrad.addColorStop(0, '#ffffff');
+    coreGrad.addColorStop(0.3, coreColor);
+    coreGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = coreGrad;
+    ctx.beginPath();
+    ctx.arc(0, 0, coreRadius * 1.6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 5. Outer glowing border
+    ctx.shadowBlur = 15 * camera.zoom;
+    ctx.shadowColor = primaryColor;
+    ctx.strokeStyle = primaryColor;
     ctx.lineWidth = 2 * camera.zoom;
+    
+    ctx.beginPath();
+    ctx.moveTo(this.points[0].x * camera.zoom, this.points[0].y * camera.zoom);
+    for (let i = 1; i < this.points.length; i++) {
+      ctx.lineTo(this.points[i].x * camera.zoom, this.points[i].y * camera.zoom);
+    }
+    ctx.closePath();
     ctx.stroke();
 
     ctx.restore();
