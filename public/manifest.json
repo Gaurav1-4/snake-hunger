@@ -1,0 +1,22 @@
+{
+  "short_name": "Snake Hunger",
+  "name": "Snake Hunger: Antigravity",
+  "description": "Premium neon-glowing snake space adventure with aggressive AI bots and epic bosses.",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#05050f",
+  "theme_color": "#00f3ff",
+  "display": "standalone",
+  "orientation": "landscape"
+}
