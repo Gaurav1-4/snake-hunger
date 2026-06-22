@@ -40,8 +40,9 @@ export class Game {
     if (!ctx) throw new Error('Could not get 2d context');
     this.ctx = ctx;
 
+    this.resizeCanvas = this.resizeCanvas.bind(this);
     this.resizeCanvas();
-    window.addEventListener('resize', this.resizeCanvas.bind(this));
+    window.addEventListener('resize', this.resizeCanvas);
 
     this.camera = new Camera(this.canvas.width, this.canvas.height);
     this.input = new Input();
@@ -156,7 +157,7 @@ export class Game {
 
   public destroy() {
     this.pause();
-    window.removeEventListener('resize', this.resizeCanvas.bind(this));
+    window.removeEventListener('resize', this.resizeCanvas);
   }
 
   private loop(currentTime: number) {
@@ -170,7 +171,9 @@ export class Game {
     this.update(safeDeltaTime);
     this.render();
 
-    this.animationFrameId = requestAnimationFrame(this.loop);
+    if (this.isRunning) {
+      this.animationFrameId = requestAnimationFrame(this.loop);
+    }
   }
 
   private update(deltaTime: number) {
