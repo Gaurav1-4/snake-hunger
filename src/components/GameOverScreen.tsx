@@ -5,7 +5,7 @@ import { RotateCcw, Home } from 'lucide-react';
 
 const GameOverScreen: React.FC = () => {
   const { score, level, resetGame, setGameState } = useGameStore();
-  const { highScore, setHighScore } = usePlayerStore();
+  const { highScore = 0, setHighScore } = usePlayerStore();
 
   // Update high score on mount
   React.useEffect(() => {

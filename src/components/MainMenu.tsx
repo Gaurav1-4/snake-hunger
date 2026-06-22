@@ -5,7 +5,7 @@ import { usePlayerStore } from '../store/usePlayerStore';
 
 const MainMenu: React.FC = () => {
   const { setGameState } = useGameStore();
-  const { nickname, setNickname } = usePlayerStore();
+  const { nickname = 'ASTRONAUT', setNickname } = usePlayerStore();
 
   return (
     <div className="flex-center fade-in" style={{ width: '100%', height: '100%', flexDirection: 'column' }}>

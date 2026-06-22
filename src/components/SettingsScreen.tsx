@@ -5,7 +5,7 @@ import { ArrowLeft, Volume2, Monitor, Download, Maximize, Sliders } from 'lucide
 
 const SettingsScreen: React.FC = () => {
   const { setGameState } = useGameStore();
-  const { sensitivity, setSensitivity } = usePlayerStore();
+  const { sensitivity = 5, setSensitivity } = usePlayerStore();
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallBtn, setShowInstallBtn] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);

@@ -5,7 +5,7 @@ import { Play, Home, Maximize, Sliders, Volume2 } from 'lucide-react';
 
 const PauseOverlay: React.FC = () => {
   const { setGameState } = useGameStore();
-  const { sensitivity, setSensitivity } = usePlayerStore();
+  const { sensitivity = 5, setSensitivity } = usePlayerStore();
   const [isFullscreen, setIsFullscreen] = React.useState(false);
 
   React.useEffect(() => {

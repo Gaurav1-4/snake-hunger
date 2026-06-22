@@ -12,7 +12,7 @@ const ACHIEVEMENTS = [
 
 const AchievementsScreen: React.FC = () => {
   const { setGameState } = useGameStore();
-  const { highScore } = usePlayerStore();
+  const { highScore = 0 } = usePlayerStore();
 
   return (
     <div className="flex-center fade-in" style={{ width: '100%', height: '100%', flexDirection: 'column', backgroundColor: 'rgba(5, 5, 15, 0.6)', backdropFilter: 'blur(8px)' }}>

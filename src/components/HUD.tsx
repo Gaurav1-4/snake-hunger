@@ -5,7 +5,7 @@ import { Shield, Zap, Magnet, Star } from 'lucide-react';
 
 const HUD: React.FC = () => {
   const { score, activePowerups, gameState } = useGameStore();
-  const { coins } = usePlayerStore();
+  const { coins = 0 } = usePlayerStore();
   const [leaderboard, setLeaderboard] = React.useState<Array<{ name: string; score: number; isPlayer: boolean }>>([]);
 
   React.useEffect(() => {

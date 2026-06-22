@@ -22,13 +22,13 @@ const TRAILS = [
 const Shop: React.FC = () => {
   const { setGameState } = useGameStore();
   const { 
-    coins, 
-    unlockedSkins, 
-    equippedSkin, 
+    coins = 0, 
+    unlockedSkins = ['neon_blue'], 
+    equippedSkin = 'neon_blue', 
     unlockSkin, 
     equipSkin, 
-    unlockedTrails, 
-    equippedTrail, 
+    unlockedTrails = ['none'], 
+    equippedTrail = 'none', 
     unlockTrail, 
     equipTrail, 
     spendCoins 
