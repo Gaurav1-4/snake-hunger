@@ -359,8 +359,71 @@ h1, h2, h3, h4, h5, h6 {
 
 
 
+/* Custom Screen Layout Elements */
+.screen-title {
+  font-size: 3.5rem;
+  letter-spacing: 6px;
+  margin-bottom: 8px;
+}
+
+.score-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.final-score {
+  font-size: 4.5rem;
+  font-family: var(--font-heading);
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.high-score-box {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 24px;
+  padding: 20px;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 12px;
+}
+
+.button-group-row {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin-top: 10px;
+  width: 100%;
+}
+
 /* Mobile landscape & tablet scaling and responsiveness */
 @media (max-height: 768px) and (orientation: landscape) {
+  .screen-title {
+    font-size: 2.2rem !important;
+    letter-spacing: 4px !important;
+  }
+  
+  .final-score {
+    font-size: 2.8rem !important;
+  }
+  
+  .high-score-box {
+    margin-top: 10px !important;
+    padding: 12px 18px !important;
+  }
+  
+  .score-box {
+    margin: 5px 0 !important;
+    gap: 4px !important;
+  }
+  
+  .button-group-row {
+    margin-top: 5px !important;
+    gap: 10px !important;
+  }
+
   .glass-panel {
     padding: 20px 40px !important;
     gap: 15px !important;
