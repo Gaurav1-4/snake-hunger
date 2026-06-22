@@ -72,11 +72,15 @@ export class Game {
   }
 
   private spawnAISnake() {
-    const x = (Math.random() - 0.5) * this.WORLD_SIZE;
-    const y = (Math.random() - 0.5) * this.WORLD_SIZE;
-    if (Math.abs(x) < 1000 && Math.abs(y) < 1000) return; // Keep away from center
+    // Spawn somewhat near the player so the player isn't lonely
+    let x, y;
+    do {
+      x = (Math.random() - 0.5) * this.WORLD_SIZE;
+      y = (Math.random() - 0.5) * this.WORLD_SIZE;
+    } while (this.player && this.player.position && new Vector2(x, y).distance(this.player.position) < 800); // Don't spawn right on top of player
+    
     const ai = new Snake(x, y, false);
-    ai.grow(Math.floor(Math.random() * 10)); // Random starting size
+    ai.grow(Math.floor(5 + Math.random() * 15)); // Start with decent size so they are threatening
     this.aiSnakes.push(ai);
   }
 
@@ -230,35 +234,36 @@ export class Game {
 
         const distToPlayer = ai.position.distance(this.player.position);
 
-        // 1. Prioritize survival (avoid player if player is bigger)
-        if (this.player.segments.length > ai.segments.length) {
-          if (distToPlayer < 800) {
+        // 1. General attraction to the player's general vicinity to keep the map feeling populated
+        let generalAttraction = new Vector2(0, 0);
+        if (distToPlayer > 2000) {
+          generalAttraction = this.player.position.sub(ai.position).normalize().mul(0.2); // Weak pull towards player
+        }
+
+        // 2. Aggressive cutoff logic (Killing intent)
+        // In snake games, any size can kill any size by cutting off the head.
+        if (distToPlayer < 1200 && !this.player.isDead) {
+          isChasing = true;
+          
+          // Calculate the point slightly ahead of the player to cut them off
+          const predictTime = Math.min(distToPlayer / 300, 2.0); // Predict max 2 seconds ahead
+          const interceptPoint = this.player.position.add(this.player.velocity.mul(predictTime));
+          
+          // If the AI is behind the player and smaller, maybe don't blindly chase their tail
+          const dotProduct = ai.currentDirection.dot(this.player.currentDirection);
+          const isBehind = interceptPoint.distance(ai.position) > distToPlayer + 200;
+          
+          if (isBehind && this.player.segments.length > ai.segments.length + 10) {
+             // Too dangerous, player is huge and AI is behind them. Just flee to survive.
              isFleeing = true;
-             // Add some noise to the flee vector to swerve
-             const awayDir = ai.position.sub(this.player.position).normalize();
-             const timeSec = Date.now() / 1000;
-             const swerve = new Vector2(Math.sin(timeSec + i * 10), Math.cos(timeSec + i * 10)).mul(0.5);
-             targetPos = ai.position.add(awayDir.add(swerve).normalize().mul(500));
-             
-             // Boost to escape if player is close or boosting
-             if (distToPlayer < 500 || this.player.isBoosting) {
-               ai.setBoost(true);
-             } else {
-               ai.setBoost(false);
-             }
-          }
-        } 
-        // 2. Chase player if AI is significantly bigger and intends to kill
-        else if (ai.segments.length >= this.player.segments.length + 5) {
-          if (distToPlayer < 1200 && !this.player.isDead) {
-             isChasing = true;
-             // Intercept player by aiming ahead based on player velocity
-             const interceptDist = Math.min(distToPlayer, 300);
-             const interceptPoint = this.player.position.add(this.player.velocity.normalize().mul(interceptDist));
+             isChasing = false;
+             targetPos = ai.position.add(ai.position.sub(this.player.position).normalize().mul(500));
+          } else {
+             // Go for the kill!
              targetPos = interceptPoint;
              
-             // Boost for the kill if close enough
-             if (distToPlayer < 600) {
+             // Boost if close enough to close the gap and secure the cutoff
+             if (distToPlayer < 600 && dotProduct < 0.5) { // If crossing paths
                ai.setBoost(true);
              } else {
                ai.setBoost(false);
@@ -284,11 +289,11 @@ export class Game {
            if (!targetPos) {
               const timeSec = Date.now() / 2000;
               const wanderNoise = new Vector2(Math.sin(timeSec + i * 5), Math.cos(timeSec + i * 5));
-              // Slightly curve the current velocity
+              // Slightly curve the current velocity, plus the general attraction to the player
               if (ai.velocity.mag() > 0) {
-                targetPos = ai.position.add(ai.velocity.normalize().add(wanderNoise.mul(0.5)).normalize().mul(500));
+                targetPos = ai.position.add(ai.velocity.normalize().add(wanderNoise.mul(0.5)).add(generalAttraction).normalize().mul(500));
               } else {
-                targetPos = ai.position.add(wanderNoise.mul(500));
+                targetPos = ai.position.add(wanderNoise.add(generalAttraction).mul(500));
               }
            }
         }
@@ -334,8 +339,8 @@ export class Game {
         this.spawnFood();
       }
       
-      // Replenish AI Snakes
-      while (this.aiSnakes.length < 15) {
+      // Replenish AI Snakes (keep the game populated with 30 snakes)
+      while (this.aiSnakes.length < 30) {
         this.spawnAISnake();
       }
 
