@@ -7,6 +7,7 @@ export class Camera {
   public viewportWidth: number;
   public viewportHeight: number;
   public shakeAmount: number = 0;
+  private currentShakeOffset: Vector2 = new Vector2(0, 0);
 
   constructor(viewportWidth: number, viewportHeight: number) {
     this.position = new Vector2(0, 0);
@@ -25,10 +26,17 @@ export class Camera {
     // Smooth zoom
     this.zoom += (this.targetZoom - this.zoom) * 0.05;
 
-    // Camera shake decay
+    // Camera shake
     if (this.shakeAmount > 0) {
-      this.shakeAmount -= deltaTime * 0.05;
-      if (this.shakeAmount < 0) this.shakeAmount = 0;
+      this.currentShakeOffset.x = (Math.random() - 0.5) * this.shakeAmount;
+      this.currentShakeOffset.y = (Math.random() - 0.5) * this.shakeAmount;
+      
+      // Fast decay (approx 0.5s to clear a shake of 5)
+      this.shakeAmount -= deltaTime * 10.0;
+      if (this.shakeAmount < 0) {
+        this.shakeAmount = 0;
+        this.currentShakeOffset = new Vector2(0, 0);
+      }
     }
   }
 
@@ -43,24 +51,17 @@ export class Camera {
 
   // World to Screen coordinates
   w2s(worldPos: Vector2): Vector2 {
-    let shakeX = 0;
-    let shakeY = 0;
-    if (this.shakeAmount > 0) {
-      shakeX = (Math.random() - 0.5) * this.shakeAmount;
-      shakeY = (Math.random() - 0.5) * this.shakeAmount;
-    }
-
     return new Vector2(
-      (worldPos.x - this.position.x) * this.zoom + this.viewportWidth / 2 + shakeX,
-      (worldPos.y - this.position.y) * this.zoom + this.viewportHeight / 2 + shakeY
+      (worldPos.x - this.position.x) * this.zoom + this.viewportWidth / 2 + this.currentShakeOffset.x,
+      (worldPos.y - this.position.y) * this.zoom + this.viewportHeight / 2 + this.currentShakeOffset.y
     );
   }
 
   // Screen to World coordinates
   s2w(screenPos: Vector2): Vector2 {
     return new Vector2(
-      (screenPos.x - this.viewportWidth / 2) / this.zoom + this.position.x,
-      (screenPos.y - this.viewportHeight / 2) / this.zoom + this.position.y
+      (screenPos.x - this.viewportWidth / 2 - this.currentShakeOffset.x) / this.zoom + this.position.x,
+      (screenPos.y - this.viewportHeight / 2 - this.currentShakeOffset.y) / this.zoom + this.position.y
     );
   }
 }
