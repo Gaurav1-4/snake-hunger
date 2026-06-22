@@ -32,7 +32,27 @@ window.addEventListener('touchstart', initOrientationLock);
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
-      .then((reg) => console.log('ServiceWorker registered successfully:', reg.scope))
+      .then((reg) => {
+        console.log('ServiceWorker registered successfully:', reg.scope);
+        
+        // Force update check
+        reg.update();
+
+        // Detect update and refresh client
+        reg.onupdatefound = () => {
+          const installingWorker = reg.installing;
+          if (installingWorker) {
+            installingWorker.onstatechange = () => {
+              if (installingWorker.state === 'installed') {
+                if (navigator.serviceWorker.controller) {
+                  console.log('New version detected. Auto-refreshing...');
+                  window.location.reload();
+                }
+              }
+            };
+          }
+        };
+      })
       .catch((err) => console.log('ServiceWorker registration failed:', err));
   });
 }
