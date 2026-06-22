@@ -120,6 +120,7 @@ export class Game {
   private resizeCanvas() {
     this.canvas.width = window.innerWidth;
     this.canvas.height = window.innerHeight;
+
     if (this.camera) {
       this.camera.resize(this.canvas.width, this.canvas.height);
     }
