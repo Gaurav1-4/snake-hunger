@@ -15,7 +15,7 @@ export class Game {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private camera: Camera;
-  private input: Input;
+  public input: Input;
   
   private lastTime: number = 0;
   private animationFrameId: number | null = null;
@@ -46,6 +46,7 @@ export class Game {
 
     this.camera = new Camera(this.canvas.width, this.canvas.height);
     this.input = new Input();
+    (window as any).gameInstance = this;
 
     this.player = new Snake(0, 0, true);
     
@@ -139,6 +140,8 @@ export class Game {
       this.activePowerups.clear();
       this.camera.position = new Vector2(0, 0);
       this.initWorld();
+      this.input.joystickDir = new Vector2(0, 0);
+      this.input.isBoosting = false;
       useGameStore.getState().resetGame();
     }
     

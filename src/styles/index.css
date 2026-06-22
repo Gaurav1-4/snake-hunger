@@ -262,3 +262,186 @@ h1, h2, h3, h4, h5, h6 {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* --- Mobile Responsive & Landscape-Only System --- */
+
+/* Rotate device overlay styling */
+.rotate-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: var(--bg-deep-space);
+  z-index: 99999;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  color: var(--text-main);
+  padding: 30px;
+}
+
+.rotate-icon {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 24px;
+  color: var(--primary-neon);
+  filter: drop-shadow(0 0 10px var(--primary-glow));
+  animation: rotatePhone 2s infinite ease-in-out;
+}
+
+@keyframes rotatePhone {
+  0% { transform: rotate(0deg); }
+  50% { transform: rotate(-90deg); }
+  100% { transform: rotate(-90deg); }
+}
+
+/* Touch Controls styling */
+.touch-controls-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 99;
+}
+
+.joystick-zone {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 50%;
+  height: 100%;
+  pointer-events: auto;
+}
+
+.joystick-base {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: rgba(15, 15, 30, 0.4);
+  border: 2px solid var(--primary-neon);
+  box-shadow: 0 0 15px var(--primary-glow);
+  border-radius: 50%;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  display: none; /* Controlled dynamically via React state */
+}
+
+.joystick-knob {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background: var(--primary-neon);
+  box-shadow: 0 0 10px var(--primary-neon);
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.boost-button-zone {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 50%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.boost-button {
+  position: absolute;
+  right: 57px; /* Aligned with the center of the minimap */
+  bottom: 190px; /* Shifted up to clear the 150px minimap */
+  width: 76px;
+  height: 76px;
+  background: rgba(255, 0, 234, 0.1);
+  border: 2px solid var(--secondary-neon);
+  box-shadow: 0 0 15px var(--secondary-glow);
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: auto;
+  cursor: pointer;
+  z-index: 100;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 0.1s, background-color 0.1s;
+}
+
+.boost-button:active {
+  background: var(--secondary-neon);
+  transform: scale(0.9);
+}
+
+.boost-button svg {
+  color: var(--secondary-neon);
+  filter: drop-shadow(0 0 5px var(--secondary-glow));
+}
+
+.boost-button:active svg {
+  color: var(--text-main);
+  filter: none;
+}
+
+/* Orientation media query */
+@media (orientation: portrait) {
+  @media (max-width: 950px) {
+    .rotate-overlay {
+      display: flex !important;
+    }
+    .ui-layer, .game-canvas {
+      display: none !important;
+    }
+  }
+}
+
+/* Mobile landscape scaling and responsiveness */
+@media (max-height: 500px) and (orientation: landscape) {
+  .glass-panel {
+    padding: 20px 40px !important;
+    gap: 15px !important;
+    min-width: 320px !important;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  
+  .glass-panel h1 {
+    font-size: 2rem !important;
+  }
+  
+  .glass-panel h3 {
+    font-size: 0.8rem !important;
+  }
+  
+  .btn {
+    padding: 10px 20px !important;
+    font-size: 0.9rem !important;
+  }
+  
+  .hud-container {
+    padding: 12px !important;
+  }
+  
+  .stats-container {
+    gap: 6px !important;
+  }
+  
+  .glass-panel-hud {
+    padding: 8px 16px !important;
+  }
+  
+  .stats-container h2 {
+    font-size: 1.4rem !important;
+  }
+  
+  .stats-container h3 {
+    font-size: 1.1rem !important;
+  }
+}
