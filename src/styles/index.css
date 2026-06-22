@@ -263,40 +263,7 @@ h1, h2, h3, h4, h5, h6 {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* --- Mobile Responsive & Landscape-Only System --- */
-
-/* Rotate device overlay styling */
-.rotate-overlay {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: var(--bg-deep-space);
-  z-index: 99999;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  color: var(--text-main);
-  padding: 30px;
-}
-
-.rotate-icon {
-  width: 80px;
-  height: 80px;
-  margin-bottom: 24px;
-  color: var(--primary-neon);
-  filter: drop-shadow(0 0 10px var(--primary-glow));
-  animation: rotatePhone 2s infinite ease-in-out;
-}
-
-@keyframes rotatePhone {
-  0% { transform: rotate(0deg); }
-  50% { transform: rotate(-90deg); }
-  100% { transform: rotate(-90deg); }
-}
+/* --- Mobile Responsive & Controls System --- */
 
 /* Touch Controls styling */
 .touch-controls-container {
@@ -390,17 +357,7 @@ h1, h2, h3, h4, h5, h6 {
   filter: none;
 }
 
-/* Orientation media query */
-@media (orientation: portrait) {
-  @media (max-width: 950px) {
-    .rotate-overlay {
-      display: flex !important;
-    }
-    .ui-layer, .game-canvas {
-      display: none !important;
-    }
-  }
-}
+
 
 /* Mobile landscape scaling and responsiveness */
 @media (max-height: 500px) and (orientation: landscape) {

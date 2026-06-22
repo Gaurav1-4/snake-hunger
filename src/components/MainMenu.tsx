@@ -15,7 +15,33 @@ const MainMenu: React.FC = () => {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '20px' }}>
-          <button className="btn btn-primary animate-pulse" onClick={() => setGameState('playing')} style={{ padding: '20px' }}>
+          <button 
+            className="btn btn-primary animate-pulse" 
+            onClick={async () => {
+              setGameState('playing');
+              
+              // Attempt to lock to landscape and go full screen for native mobile feel
+              try {
+                const docEl = document.documentElement as any;
+                if (docEl.requestFullscreen) {
+                  await docEl.requestFullscreen();
+                } else if (docEl.webkitRequestFullscreen) {
+                  await docEl.webkitRequestFullscreen();
+                } else if (docEl.mozRequestFullScreen) {
+                  await docEl.mozRequestFullScreen();
+                } else if (docEl.msRequestFullscreen) {
+                  await docEl.msRequestFullscreen();
+                }
+                
+                if (screen.orientation && (screen.orientation as any).lock) {
+                  await (screen.orientation as any).lock('landscape');
+                }
+              } catch (e) {
+                console.warn('Orientation lock failed:', e);
+              }
+            }} 
+            style={{ padding: '20px' }}
+          >
             <Play size={24} /> START GAME
           </button>
           
