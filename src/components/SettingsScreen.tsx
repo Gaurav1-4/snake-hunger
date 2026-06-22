@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useGameStore } from '../store/useGameStore';
-import { ArrowLeft, Volume2, Monitor, Download } from 'lucide-react';
+import { usePlayerStore } from '../store/usePlayerStore';
+import { ArrowLeft, Volume2, Monitor, Download, Maximize, Sliders } from 'lucide-react';
 
 const SettingsScreen: React.FC = () => {
   const { setGameState } = useGameStore();
+  const { sensitivity, setSensitivity } = usePlayerStore();
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallBtn, setShowInstallBtn] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -25,6 +28,38 @@ const SettingsScreen: React.FC = () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
   }, []);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const doc = document as any;
+      setIsFullscreen(!!doc.fullscreenElement || !!doc.webkitFullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+
+    // Initial check
+    handleFullscreenChange();
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  const toggleFullscreen = () => {
+    const doc = document as any;
+    const docEl = document.documentElement as any;
+    
+    const requestFS = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+    const exitFS = doc.exitFullscreen || doc.webkitExitFullscreen || doc.mozCancelFullScreen || doc.msExitFullscreen;
+    
+    if (!doc.fullscreenElement && !doc.webkitFullscreenElement) {
+      if (requestFS) requestFS.call(docEl).catch((err: any) => console.log(err));
+    } else {
+      if (exitFS) exitFS.call(doc).catch((err: any) => console.log(err));
+    }
+  };
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
@@ -90,10 +125,48 @@ const SettingsScreen: React.FC = () => {
             </div>
           </div>
 
+          {/* Controls & Window Settings */}
+          <div className="glass-panel-hud" style={{ padding: '24px' }}>
+            <h3 className="text-neon" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px', letterSpacing: '2px' }}>
+              <Sliders size={24} /> CONTROLS & SCREEN
+            </h3>
+            
+            {/* Sensitivity Slider */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span className="text-main" style={{ fontSize: '1.1rem', display: 'block' }}>Steering Sensitivity</span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Adjust snake turning responsiveness</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <input 
+                  type="range" 
+                  min="1" 
+                  max="10" 
+                  value={sensitivity}
+                  onChange={(e) => setSensitivity(Number(e.target.value))}
+                  style={{ width: '150px' }} 
+                  className="accent-neon" 
+                />
+                <span className="text-neon" style={{ fontSize: '1.1rem', fontWeight: 'bold', minWidth: '24px', textAlign: 'right' }}>{sensitivity}</span>
+              </div>
+            </div>
+            
+            {/* Fullscreen Toggle */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '20px' }}>
+              <div>
+                <span className="text-main" style={{ fontSize: '1.1rem', display: 'block' }}>Fullscreen Mode</span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Play in immersive browser view</span>
+              </div>
+              <button className="btn btn-secondary" onClick={toggleFullscreen} style={{ padding: '10px 20px', fontSize: '0.9rem', gap: '8px' }}>
+                <Maximize size={16} /> {isFullscreen ? 'EXIT FULLSCREEN' : 'ENTER FULLSCREEN'}
+              </button>
+            </div>
+          </div>
+
           {/* App Installation */}
           {showInstallBtn && (
             <div className="glass-panel-hud" style={{ padding: '24px' }}>
-              <h3 className="text-neon" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', letterSpacing: '2px' }}>
+              <h3 className="text-neon-secondary" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', letterSpacing: '2px' }}>
                 <Download size={24} /> INSTALL GAME
               </h3>
               <p style={{ color: 'var(--text-muted)', marginBottom: '16px', fontSize: '0.95rem' }}>
@@ -111,7 +184,7 @@ const SettingsScreen: React.FC = () => {
                 <Download size={24} /> INSTALL GAME
               </h3>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: '1.6' }}>
-                To install this game on your iPhone/iPad: tap the <strong>Share</strong> button (the square with an up arrow) in Safari, scroll down, and select <strong>\"Add to Home Screen\"</strong>.
+                To install this game on your iPhone/iPad: tap the <strong>Share</strong> button (the square with an up arrow) in Safari, scroll down, and select <strong>"Add to Home Screen"</strong>.
               </p>
             </div>
           )}

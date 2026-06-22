@@ -25,6 +25,7 @@ export class Snake extends Entity {
   public score: number = 0;
   private skinColor: string;
   private glowColor: string;
+  public isPlayer: boolean;
 
   constructor(x: number, y: number, isPlayer: boolean = false) {
     super(x, y, 20); // Head radius
@@ -33,6 +34,8 @@ export class Snake extends Entity {
     for (let i = 0; i < 5; i++) {
       this.segments.push(new SnakeSegment(new Vector2(x - i * 15, y), this.radius * 0.9));
     }
+
+    this.isPlayer = isPlayer;
 
     if (isPlayer) {
       const skin = usePlayerStore.getState().equippedSkin;
@@ -62,7 +65,13 @@ export class Snake extends Entity {
 
   update(deltaTime: number) {
     // Smooth rotation towards target direction
-    const turnSpeed = 5 * deltaTime;
+    let baseTurnSpeed = 5;
+    if (this.isPlayer) {
+      const userSensitivity = usePlayerStore.getState().sensitivity; // 1 to 10
+      // Map 1-10 sensitivity to a turn speed factor (1 -> 1.5, 5 -> 6.1, 10 -> 11.85)
+      baseTurnSpeed = 1.5 + (userSensitivity - 1) * 1.15;
+    }
+    const turnSpeed = baseTurnSpeed * deltaTime;
     
     // Simple interpolation for direction
     this.currentDirection.x += (this.targetDirection.x - this.currentDirection.x) * turnSpeed;

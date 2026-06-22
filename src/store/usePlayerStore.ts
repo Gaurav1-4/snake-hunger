@@ -8,6 +8,7 @@ interface PlayerStore {
   equippedSkin: string;
   unlockedTrails: string[];
   equippedTrail: string;
+  sensitivity: number; // turning responsiveness (1 - 10, default 5)
   
   setHighScore: (score: number) => void;
   addCoins: (amount: number) => void;
@@ -16,6 +17,7 @@ interface PlayerStore {
   equipSkin: (skinId: string) => void;
   unlockTrail: (trailId: string) => void;
   equipTrail: (trailId: string) => void;
+  setSensitivity: (val: number) => void;
 }
 
 export const usePlayerStore = create<PlayerStore>()(
@@ -27,6 +29,7 @@ export const usePlayerStore = create<PlayerStore>()(
       equippedSkin: 'neon_blue',
       unlockedTrails: ['none'],
       equippedTrail: 'none',
+      sensitivity: 5,
 
       setHighScore: (score) => {
         if (score > get().highScore) {
@@ -46,6 +49,7 @@ export const usePlayerStore = create<PlayerStore>()(
       equipSkin: (skinId) => set({ equippedSkin: skinId }),
       unlockTrail: (trailId) => set((state) => ({ unlockedTrails: [...state.unlockedTrails, trailId] })),
       equipTrail: (trailId) => set({ equippedTrail: trailId }),
+      setSensitivity: (val) => set({ sensitivity: val }),
     }),
     {
       name: 'snake-hunger-player-storage',
