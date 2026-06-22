@@ -348,9 +348,10 @@ export class Game {
         this.spawnAISnake();
       }
 
-      // Camera
-      this.camera.targetZoom = this.player.isBoosting ? 0.8 : 1.0 - (this.player.segments.length * 0.002);
-      this.camera.targetZoom = Math.max(0.3, Math.min(1.5, this.camera.targetZoom));
+      // Camera - Zoom dynamically scaled by viewport height to keep snake size proportional
+      const heightScale = Math.max(0.45, Math.min(1.0, this.canvas.height / 900));
+      this.camera.targetZoom = (this.player.isBoosting ? 0.8 : 1.0 - (this.player.segments.length * 0.0015)) * heightScale;
+      this.camera.targetZoom = Math.max(0.25, Math.min(1.5, this.camera.targetZoom));
       this.camera.update(deltaTime, this.player.position);
 
     } else if (gameState === 'menu') {
@@ -593,8 +594,9 @@ export class Game {
   }
 
   private drawMinimap() {
-    const size = 150;
-    const padding = 20;
+    // Dynamic minimap sizing based on screen height to prevent blocking mobile view
+    const size = Math.max(90, Math.min(150, this.canvas.height * 0.18));
+    const padding = Math.max(10, Math.min(20, this.canvas.height * 0.02));
     const x = this.canvas.width - size - padding;
     const y = this.canvas.height - size - padding;
     

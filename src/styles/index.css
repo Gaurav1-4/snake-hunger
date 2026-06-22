@@ -359,8 +359,8 @@ h1, h2, h3, h4, h5, h6 {
 
 
 
-/* Mobile landscape scaling and responsiveness */
-@media (max-height: 500px) and (orientation: landscape) {
+/* Mobile landscape & tablet scaling and responsiveness */
+@media (max-height: 768px) and (orientation: landscape) {
   .glass-panel {
     padding: 20px 40px !important;
     gap: 15px !important;
@@ -400,5 +400,12 @@ h1, h2, h3, h4, h5, h6 {
   
   .stats-container h3 {
     font-size: 1.1rem !important;
+  }
+
+  .boost-button {
+    right: 25px !important;
+    bottom: 120px !important;
+    width: 60px !important;
+    height: 60px !important;
   }
 }
